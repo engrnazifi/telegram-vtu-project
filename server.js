@@ -6,12 +6,18 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
+/* ROOT ROUTE (MUHIMMI GA CYCLIC) */
+app.get("/", (req, res) => {
+  res.send("VTU Backend is running");
+});
+
 let users = {};
 let transactions = [];
 
 /* CREATE USER */
 app.post("/user", (req, res) => {
   const { telegram_id, name } = req.body;
+
   if (!users[telegram_id]) {
     users[telegram_id] = {
       telegram_id,
@@ -19,6 +25,7 @@ app.post("/user", (req, res) => {
       balance: 10000
     };
   }
+
   res.json(users[telegram_id]);
 });
 
@@ -31,6 +38,7 @@ app.get("/user/:id", (req, res) => {
 app.post("/buy-data", (req, res) => {
   const { telegram_id, network, plan, phone, amount } = req.body;
   const user = users[telegram_id];
+
   if (!user) return res.status(400).json({ error: "User not found" });
   if (user.balance < amount)
     return res.status(400).json({ error: "Low balance" });
@@ -45,6 +53,7 @@ app.post("/buy-data", (req, res) => {
     amount,
     status: "SUCCESS"
   };
+
   transactions.push(tx);
   res.json({ success: true, tx });
 });
@@ -54,6 +63,8 @@ app.get("/transactions/:id", (req, res) => {
   res.json(transactions);
 });
 
-app.listen(process.env.PORT || 3000, () =>
-  console.log("Backend running")
+/* SERVER */
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () =>
+  console.log("Backend running on port " + PORT)
 );
