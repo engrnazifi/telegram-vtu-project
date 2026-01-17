@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>VTU App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+  <h2>💚 VTU Dashboard</h2>
+
+  <div class="card">
+    <p>Balance</p>
+    <h1 id="balance">₦0</h1>
+  </div>
+
+  <div class="card">
+    <select id="network">
+      <option>MTN</option>
+      <option>AIRTEL</option>
+      <option>GLO</option>
+      <option>9MOBILE</option>
+    </select>
+
+    <input id="plan" placeholder="Plan e.g 1GB">
+    <input id="phone" placeholder="Phone Number">
+    <input id="amount" placeholder="Amount">
+
+    <button onclick="buyData()">Buy Data</button>
+  </div>
+
+  <div class="card">
+    <h3>Transactions</h3>
+    <ul id="tx"></ul>
+  </div>
+
+  <div class="card">
+    <h3>Profile</h3>
+    <p id="user"></p>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
