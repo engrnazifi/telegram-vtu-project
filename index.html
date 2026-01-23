@@ -4,43 +4,36 @@
   <title>VTU App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="container">
-  <h2>💚 VTU Dashboard</h2>
+<h2>💚 VTU Dashboard</h2>
 
-  <div class="card">
-    <p>Balance</p>
-    <h1 id="balance">₦0</h1>
-  </div>
+<p>User: <span id="user"></span></p>
 
-  <div class="card">
-    <select id="network">
-      <option>MTN</option>
-      <option>AIRTEL</option>
-      <option>GLO</option>
-      <option>9MOBILE</option>
-    </select>
+<h3>Balance</h3>
+<h1 id="balance">₦0</h1>
 
-    <input id="plan" placeholder="Plan e.g 1GB">
-    <input id="phone" placeholder="Phone Number">
-    <input id="amount" placeholder="Amount">
+<hr>
 
-    <button onclick="buyData()">Buy Data</button>
-  </div>
+<h3>Fund Wallet</h3>
+<input id="fundAmount" placeholder="Amount">
+<button onclick="fundWallet()">Fund</button>
 
-  <div class="card">
-    <h3>Transactions</h3>
-    <ul id="tx"></ul>
-  </div>
+<hr>
 
-  <div class="card">
-    <h3>Profile</h3>
-    <p id="user"></p>
-  </div>
-</div>
+<h3>Buy Data</h3>
+<select id="network">
+  <option>MTN</option>
+  <option>AIRTEL</option>
+  <option>GLO</option>
+  <option>9MOBILE</option>
+</select>
+
+<input id="plan" placeholder="Plan e.g 1GB">
+<input id="phone" placeholder="Phone Number">
+
+<button onclick="buyData()">Buy Data</button>
 
 <script src="app.js"></script>
 </body>
