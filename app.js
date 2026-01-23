@@ -1,54 +1,72 @@
 const tg = window.Telegram.WebApp;
 tg.ready();
 
-const userId = tg.initDataUnsafe.user.id;
-const name = tg.initDataUnsafe.user.first_name;
+const userSpan = document.getElementById("user");
+const balanceEl = document.getElementById("balance");
 
-document.getElementById("user").innerText = name;
+// Telegram user
+const telegramUser = tg.initDataUnsafe?.user;
 
-const API = "https://telegram-vtu-project.onrender.com";
+let telegram_id = telegramUser?.id || "demo_user";
+let name = telegramUser?.first_name || "Guest";
 
-/* CREATE USER */
-fetch(API + "/user", {
+// Show user
+userSpan.innerText = name;
+
+// Create user on backend
+fetch("/user", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ telegram_id: userId, name })
+  body: JSON.stringify({
+    telegram_id,
+    name
+  })
 })
-  .then(res => res.json())
-  .then(data => {
-    document.getElementById("balance").innerText = "₦" + data.balance;
-  });
+.then(res => res.json())
+.then(data => {
+  balanceEl.innerText = "₦" + data.balance;
+});
 
-/* BUY DATA */
+// FUND WALLET (placeholder)
+function fundWallet() {
+  const amount = document.getElementById("fundAmount").value;
+  if (!amount) {
+    alert("Enter amount");
+    return;
+  }
+  alert("Flutterwave will be connected here later");
+}
+
+// BUY DATA
 function buyData() {
-  fetch(API + "/buy-data", {
+  const network = document.getElementById("network").value;
+  const plan = document.getElementById("plan").value;
+  const phone = document.getElementById("phone").value;
+
+  if (!plan || !phone) {
+    alert("Fill all fields");
+    return;
+  }
+
+  fetch("/buy-data", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      telegram_id: userId,
-      network: network.value,
-      plan: plan.value,
-      phone: phone.value
+      telegram_id,
+      network,
+      plan,
+      phone,
+      amount: 100 // placeholder
     })
   })
-    .then(res => res.json())
-    .then(data => {
-      alert("✅ Data Purchased");
-      location.reload();
-    });
-}
-
-/* FUND WALLET */
-function fundWallet() {
-  const amount = document.getElementById("fundAmount").value;
-
-  fetch(API + "/pay", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ telegram_id: userId, amount })
-  })
-    .then(res => res.json())
-    .then(data => {
-      window.location.href = data.data.link;
-    });
+  .then(res => res.json())
+  .then(data => {
+    if (data.error) {
+      alert(data.error);
+    } else {
+      alert("Data purchase successful");
+      balanceEl.innerText =
+        "₦" + (parseInt(balanceEl.innerText.replace("₦","")) - 100);
+    }
+  });
 }
