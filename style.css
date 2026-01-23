@@ -1,14 +1,17 @@
 body {
-  font-family: Arial;
+  font-family: Arial, sans-serif;
   background: #e8f5e9;
+  margin: 0;
+  padding: 0;
 }
 
 .container {
   padding: 15px;
 }
 
-h2 {
+h2, h3 {
   color: #1b5e20;
+  margin-top: 0;
 }
 
 .card {
@@ -16,6 +19,7 @@ h2 {
   padding: 15px;
   margin-bottom: 15px;
   border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.08);
 }
 
 button {
@@ -25,10 +29,25 @@ button {
   border: none;
   padding: 12px;
   border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+button:active {
+  opacity: 0.85;
 }
 
 input, select {
   width: 100%;
   padding: 10px;
   margin-bottom: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 15px;
+}
+
+.balance {
+  font-size: 28px;
+  font-weight: bold;
+  color: #2e7d32;
 }
