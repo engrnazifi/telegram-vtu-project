@@ -6,7 +6,7 @@ const name = tg.initDataUnsafe.user.first_name;
 
 document.getElementById("user").innerText = name;
 
-const API = "https://YOUR-RENDER-BACKEND.onrender.com";
+const API = "https://telegram-vtu-project.onrender.com";
 
 /* CREATE USER */
 fetch(API + "/user", {
