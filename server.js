@@ -3,10 +3,16 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const axios = require("axios");
 const path = require("path");
+const crypto = require("crypto");
 
 const app = express();
+
+/* =======================
+   MIDDLEWARE
+======================= */
 app.use(cors());
 app.use(bodyParser.json());
+app.use(express.urlencoded({ extended: true }));
 
 /* =======================
    STATIC MINI APP
@@ -18,17 +24,27 @@ app.get("/", (req, res) => {
 });
 
 /* =======================
-   CONFIG
+   ENV CONFIG (RENDER)
 ======================= */
-const FLW_SECRET_KEY = process.env.FLW_SECRET_KEY; // REAL KEY
-const ADMIN_ID = process.env.ADMIN_ID; // telegram id naka
+const PORT = process.env.PORT || 3000;
+
+const FLW_SECRET_KEY = process.env.FLW_SECRET_KEY; // LIVE KEY
+const FLW_WEBHOOK_SECRET = process.env.FLW_WEBHOOK_SECRET;
+const ADMIN_ID = process.env.ADMIN_ID; // telegram numeric id
+
+if (!FLW_SECRET_KEY || !FLW_WEBHOOK_SECRET || !ADMIN_ID) {
+  console.error("❌ Missing ENV variables");
+}
 
 /* =======================
-   FAKE DATABASE
+   IN-MEMORY DB (DEMO)
 ======================= */
 let users = {};
 let transactions = [];
 
+/* =======================
+   ADMIN SETTINGS
+======================= */
 let settings = {
   MTN: { "1GB": 300, "2GB": 600 },
   AIRTEL: { "1GB": 320 },
@@ -42,10 +58,14 @@ let settings = {
 app.post("/user", (req, res) => {
   const { telegram_id, name } = req.body;
 
+  if (!telegram_id) {
+    return res.status(400).json({ error: "telegram_id required" });
+  }
+
   if (!users[telegram_id]) {
     users[telegram_id] = {
       telegram_id,
-      name,
+      name: name || "Telegram User",
       balance: 0
     };
   }
@@ -54,7 +74,7 @@ app.post("/user", (req, res) => {
 });
 
 app.get("/user/:id", (req, res) => {
-  res.json(users[req.params.id]);
+  res.json(users[req.params.id] || null);
 });
 
 /* =======================
@@ -68,7 +88,7 @@ app.post("/admin/update-price", (req, res) => {
   }
 
   if (!settings[network]) settings[network] = {};
-  settings[network][plan] = price;
+  settings[network][plan] = Number(price);
 
   res.json({ success: true, settings });
 });
@@ -79,14 +99,20 @@ app.post("/admin/update-price", (req, res) => {
 app.post("/pay", async (req, res) => {
   const { telegram_id, amount } = req.body;
 
+  if (!telegram_id || !amount) {
+    return res.status(400).json({ error: "Missing fields" });
+  }
+
+  const tx_ref = "TX_" + Date.now() + "_" + telegram_id;
+
   try {
     const response = await axios.post(
       "https://api.flutterwave.com/v3/payments",
       {
-        tx_ref: "TX_" + Date.now(),
+        tx_ref,
         amount,
         currency: "NGN",
-        redirect_url: "https://your-render-url.onrender.com",
+        redirect_url: "https://t.me/your_bot_username",
         customer: {
           email: `${telegram_id}@telegram.com`
         },
@@ -96,14 +122,18 @@ app.post("/pay", async (req, res) => {
       },
       {
         headers: {
-          Authorization: `Bearer ${FLW_SECRET_KEY}`
+          Authorization: `Bearer ${FLW_SECRET_KEY}`,
+          "Content-Type": "application/json"
         }
       }
     );
 
-    res.json(response.data);
+    res.json({
+      payment_link: response.data.data.link,
+      tx_ref
+    });
   } catch (err) {
-    console.error(err.response?.data || err.message);
+    console.error("❌ FLW INIT ERROR", err.response?.data || err.message);
     res.status(500).json({ error: "Payment init failed" });
   }
 });
@@ -112,6 +142,13 @@ app.post("/pay", async (req, res) => {
    FLUTTERWAVE WEBHOOK
 ======================= */
 app.post("/webhook/flutterwave", (req, res) => {
+  const signature = req.headers["verif-hash"];
+
+  if (!signature || signature !== FLW_WEBHOOK_SECRET) {
+    console.log("❌ Invalid webhook signature");
+    return res.sendStatus(401);
+  }
+
   const event = req.body;
 
   if (event.status === "successful") {
@@ -128,6 +165,8 @@ app.post("/webhook/flutterwave", (req, res) => {
         type: "FUND",
         status: "SUCCESS"
       });
+
+      console.log("✅ WALLET FUNDED:", telegram_id, amount);
     }
   }
 
@@ -135,12 +174,23 @@ app.post("/webhook/flutterwave", (req, res) => {
 });
 
 /* =======================
+   VTU PLACEHOLDER
+======================= */
+async function buyFromVTU(network, plan, phone) {
+  // ⚠️ PLACEHOLDER – replace with VTU.ng later
+  return {
+    status: "SUCCESS",
+    vendor_ref: "VTU_" + Date.now()
+  };
+}
+
+/* =======================
    BUY DATA
 ======================= */
-app.post("/buy-data", (req, res) => {
+app.post("/buy-data", async (req, res) => {
   const { telegram_id, network, plan, phone } = req.body;
-  const user = users[telegram_id];
 
+  const user = users[telegram_id];
   if (!user) return res.status(400).json({ error: "User not found" });
 
   const price = settings[network]?.[plan];
@@ -148,6 +198,11 @@ app.post("/buy-data", (req, res) => {
 
   if (user.balance < price)
     return res.status(400).json({ error: "Low balance" });
+
+  const vtu = await buyFromVTU(network, plan, phone);
+  if (vtu.status !== "SUCCESS") {
+    return res.status(500).json({ error: "VTU failed" });
+  }
 
   user.balance -= price;
 
@@ -159,12 +214,17 @@ app.post("/buy-data", (req, res) => {
     phone,
     amount: price,
     type: "DATA",
+    vendor_ref: vtu.vendor_ref,
     status: "SUCCESS"
   };
 
   transactions.push(tx);
 
-  res.json({ success: true, tx, balance: user.balance });
+  res.json({
+    success: true,
+    tx,
+    balance: user.balance
+  });
 });
 
 /* =======================
@@ -177,6 +237,6 @@ app.get("/transactions/:id", (req, res) => {
 /* =======================
    SERVER
 ======================= */
-app.listen(process.env.PORT || 3000, () =>
-  console.log("✅ Backend + Mini App running")
-);
+app.listen(PORT, () => {
+  console.log("✅ VTU Backend + Mini App running on port", PORT);
+});
